@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Gabca clicker</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gabca clicker">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  body { margin:0; min-height:100vh; background:radial-gradient(circle,#2a1a6e,#0a0620); color:#fff;
+         font-family:system-ui,sans-serif; display:flex; flex-direction:column; align-items:center; padding:max(16px, env(safe-area-inset-top)) 16px 16px; box-sizing:border-box; user-select:none; }
+  h1 { margin:8px 0; font-size:2.4rem; text-shadow:0 0 12px #6cf; letter-spacing:2px; }
+  #score { font-size:2rem; font-weight:bold; }
+  #cps { opacity:.8; margin-bottom:12px; }
+  #gabca { width:min(320px,80vw); border-radius:50%; cursor:pointer; box-shadow:0 0 40px #59f; transition:transform .06s; border:none; padding:0; background:none; }
+  #gabca img { width:100%; border-radius:50%; display:block; pointer-events:none; }
+  #gabca:active { transform:scale(.93); }
+  .pop { position:fixed; pointer-events:none; font-weight:bold; font-size:1.4rem; color:#9ef; animation:up .8s forwards; }
+  @keyframes up { to { transform:translateY(-70px); opacity:0; } }
+  #shop { margin-top:20px; display:grid; gap:8px; width:min(420px,100%); }
+  #shop button { padding:12px; border-radius:10px; border:1px solid #59f; background:#1b1450; color:#fff; font-size:1rem; cursor:pointer; text-align:left; }
+  #shop button:disabled { opacity:.4; cursor:default; }
+</style>
+</head>
+<body>
+<h1>Gabca clicker</h1>
+<div id="score">0</div>
+<div id="cps">0 / s</div>
+<button id="gabca" aria-label="Klikni na Gabcu"><img src="gabca.jpg" alt="Gabca"></button>
+<div id="shop"></div>
+<script>
+const upgrades = [
+  { name: "Silnější klik", desc: "+1 za klik", cost: 15, click: 1 },
+  { name: "Laserové oči", desc: "+1 / s", cost: 50, cps: 1 },
+  { name: "Blesková bouře", desc: "+8 / s", cost: 500, cps: 8 },
+  { name: "Admin koruna", desc: "+50 / s", cost: 5000, cps: 50 },
+];
+let s = { score: 0, perClick: 1, cps: 0, owned: upgrades.map(() => 0) };
+try { Object.assign(s, JSON.parse(localStorage.getItem("gabca")) || {}); } catch {}
+
+const $ = id => document.getElementById(id);
+const fmt = n => Math.floor(n).toLocaleString("cs-CZ");
+const price = i => Math.floor(upgrades[i].cost * 1.15 ** s.owned[i]);
+
+const shop = $("shop");
+upgrades.forEach((u, i) => {
+  const b = document.createElement("button");
+  b.onclick = () => {
+    if (s.score < price(i)) return;
+    s.score -= price(i); s.owned[i]++;
+    s.perClick += u.click || 0; s.cps += u.cps || 0;
+    render();
+  };
+  shop.append(b);
+});
+
+function render() {
+  $("score").textContent = fmt(s.score) + " Gabcoinů";
+  $("cps").textContent = fmt(s.cps) + " / s · " + s.perClick + " za klik";
+  [...shop.children].forEach((b, i) => {
+    b.textContent = `${upgrades[i].name} (${s.owned[i]}) — ${upgrades[i].desc} — cena ${fmt(price(i))}`;
+    b.disabled = s.score < price(i);
+  });
+}
+
+$("gabca").onclick = e => {
+  s.score += s.perClick; render();
+  const p = document.createElement("div");
+  p.className = "pop"; p.textContent = "+" + s.perClick;
+  p.style.left = (e.clientX || innerWidth / 2) + "px"; p.style.top = (e.clientY || innerHeight / 2) + "px";
+  document.body.append(p); setTimeout(() => p.remove(), 800);
+};
+
+setInterval(() => { s.score += s.cps / 10; render(); }, 100);
+setInterval(() => { try { localStorage.setItem("gabca", JSON.stringify(s)); } catch {} }, 2000);
+render();
+</script>
+</body>
+</html>

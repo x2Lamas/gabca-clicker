@@ -1,0 +1,28 @@
+name: Build APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+      - run: mkdir -p android/app/src/main/assets && cp index.html gabca.jpg android/app/src/main/assets/
+      # shortcut: debug podpis se generuje při každém buildu, update appky pak chce odinstalovat starou; pro stálý podpis přidat keystore
+      - run: cd android && gradle assembleDebug
+      - run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk GabcaClicker.apk
+          gh release delete android -y --cleanup-tag || true
+          gh release create android GabcaClicker.apk -t "Gabca clicker (Android)" -n "Stáhni do telefonu a nainstaluj (povol instalaci z neznámých zdrojů)."
+        env:
+          GH_TOKEN: ${{ github.token }}

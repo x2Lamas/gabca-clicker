@@ -1,2 +1,7 @@
 .claude/
 ios/www/
+GabcaClicker.ipa
+android/app/src/main/assets/
+android/.gradle/
+android/app/build/
+GabcaClicker.apk

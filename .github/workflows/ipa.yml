@@ -1,0 +1,26 @@
+name: Build IPA
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: mkdir -p ios/www && cp index.html gabca.jpg ios/www/
+      - run: cd ios && xcodegen generate
+      - run: >
+          xcodebuild -project ios/GabcaClicker.xcodeproj -target GabcaClicker
+          -configuration Release -sdk iphoneos SYMROOT=$PWD/build
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+      # shortcut: nepodepsaná IPA, podepíše ji Sideloadly/AltStore při instalaci
+      - run: mkdir Payload && cp -R build/Release-iphoneos/GabcaClicker.app Payload/ && zip -qry GabcaClicker.ipa Payload
+      - run: |
+          gh release delete latest -y --cleanup-tag || true
+          gh release create latest GabcaClicker.ipa -t "Gabca clicker" -n "Nepodepsaná IPA, nainstaluj přes Sideloadly nebo AltStore."
+        env:
+          GH_TOKEN: ${{ github.token }}
